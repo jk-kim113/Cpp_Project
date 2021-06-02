@@ -1,40 +1,149 @@
-﻿// TestServer.cpp : 이 파일에는 'main' 함수가 포함됩니다. 거기서 프로그램 실행이 시작되고 종료됩니다.
-//
+﻿#define _CRT_SECURE_NO_WARNINGS
 
 #include <iostream>
+#include <string>
 #include <WinSock2.h>
 #include <thread>
+#include <queue>
+#include <mutex>
+#include <vector>
 
 #pragma comment(lib, "ws2_32")
 
 using namespace std;
 
 #define PORT        4578
-#define PACKET_SIZE 1024
+#define PACKET_SIZE 1032
+#define CLIENT_COUNT 4
 
 SOCKET skt, client_sock;
+bool _isSendTest = false;
+
+SOCKET clientSocket[CLIENT_COUNT];
+
+vector<SOCKET> _clientGroup;
+vector<thread*> _clientThread;
+
+mutex _mtx;
+
+typedef struct serverData {
+    int _id;
+    int _age;
+};
+
+typedef struct PacketInfo {
+    int _id;
+    int _totalSize;
+    char _data[1024];
+};
+
+typedef struct Packet_Chat {
+    char _chat[100];
+};
+
+queue<PacketInfo> _fromClientQueue;
 
 void proc_recvs()
 {
+    printf("Wait Client Data\n");
     char buffer[PACKET_SIZE] = { 0 };
+    ZeroMemory(&buffer, PACKET_SIZE);
 
-    while (!WSAGetLastError())
+    while (true)
+    {   
+        for (int n = 0; n < CLIENT_COUNT; n++)
+        {
+            if (clientSocket[n] != NULL)
+            {
+                int recvLen = recv(clientSocket[n], buffer, PACKET_SIZE, 0);
+                if (recvLen > 0)
+                {
+                    PacketInfo packet;
+                    memcpy(&packet, &buffer, sizeof(buffer));
+
+                    _mtx.lock();
+                    _fromClientQueue.push(packet);
+                    printf("Push Data\n");
+                    _mtx.unlock();
+
+                    break;
+                }
+            }
+        }
+
+        //recv(client_sock, buffer, PACKET_SIZE, 0);
+
+        /*if (!_isSendTest)
+        {
+            serverData sData;
+            sData._id = 1;
+            sData._age = 10;
+
+            char szPacket[1024];
+            memset(szPacket, 0x0, sizeof(szPacket));
+            memcpy(szPacket, &sData, sizeof(sData));
+
+            *((serverData*)szPacket) = sData;
+
+            send(client_sock, szPacket, 1024, 0);
+
+            _isSendTest = true;
+        }*/
+    }
+
+    printf("클라이언트를 받아오는 쪽에서 서버가 종료됩니다");
+}
+
+void DoOrder()
+{
+    while (true)
     {
-        ZeroMemory(&buffer, PACKET_SIZE);
-        recv(client_sock, buffer, PACKET_SIZE, 0);
-        cout << "받은 메세지 : " << buffer << endl;
+        _mtx.lock();
+        if (!_fromClientQueue.empty())
+        {
+            PacketInfo packet = _fromClientQueue.front();
+            _fromClientQueue.pop();
+
+            Packet_Chat pChat;
+            memcpy(&pChat, &packet._data, sizeof(packet._data));
+
+            std::cout << "Packet Message : " << pChat._chat << "\n";
+        }
+        _mtx.unlock();
     }
 }
 
-void ByteArrayToStructure()
+void AcceptClient()
 {
+    while (true)
+    {
+        if (listen(skt, SOMAXCONN) == 0)
+        {
+            SOCKADDR_IN client = {};
+            int iClntSize = sizeof(client);
+            ZeroMemory(&client, iClntSize);
+            //client_sock = accept(skt, (SOCKADDR*)&client, &iClntSize);
 
+            /*_clientSocketList.push_back(accept(skt, (SOCKADDR*)&client, &iClntSize));
+            printf("%d번째 클라이언트 접속\n", (int)_clientSocketList.size());*/
+
+            _clientGroup.push_back(accept(skt, (SOCKADDR*)&client, &iClntSize));
+
+            for (int n = 0; n < CLIENT_COUNT; n++)
+            {
+                if (clientSocket[n] == NULL)
+                {
+                    clientSocket[n] = accept(skt, (SOCKADDR*)&client, &iClntSize);
+                    printf("%d번째 클라이언트 접속\n", n + 1);
+                    break;
+                }
+            }
+        }
+    }
 }
 
-int main()
+void ServerTest()
 {
-    std::cout << "Hello World!\n";
-
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 
@@ -46,36 +155,49 @@ int main()
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     bind(skt, (SOCKADDR*)&addr, sizeof(addr));
-    listen(skt, SOMAXCONN);
-
-    SOCKADDR_IN client = {};
-    int iClntSize = sizeof(client);
-    ZeroMemory(&client, iClntSize);
-    client_sock = accept(skt, (SOCKADDR*)&client, &iClntSize);
+    
+    thread acceptClient(AcceptClient);
 
     char buffer[PACKET_SIZE] = { 0 };
     thread proc2(proc_recvs);
+    thread doOrder(DoOrder);
 
-    while (!WSAGetLastError()) 
+    while (!WSAGetLastError())
     {
         cin >> buffer;
         send(client_sock, buffer, strlen(buffer), 0);
     }
+
+    printf("클라이언트 쪽에 보내는 부분에서 서버가 종료됩니다");
+
+    acceptClient.join();
     proc2.join();
+    doOrder.join();
     closesocket(client_sock);
     closesocket(skt);
 
     WSACleanup();
-    return 0;
 }
 
-// 프로그램 실행: <Ctrl+F5> 또는 [디버그] > [디버깅하지 않고 시작] 메뉴
-// 프로그램 디버그: <F5> 키 또는 [디버그] > [디버깅 시작] 메뉴
+void ByteArrayToStructure()
+{
+    serverData sData;
+    sData._id = 1;
+    sData._age = 10;
 
-// 시작을 위한 팁: 
-//   1. [솔루션 탐색기] 창을 사용하여 파일을 추가/관리합니다.
-//   2. [팀 탐색기] 창을 사용하여 소스 제어에 연결합니다.
-//   3. [출력] 창을 사용하여 빌드 출력 및 기타 메시지를 확인합니다.
-//   4. [오류 목록] 창을 사용하여 오류를 봅니다.
-//   5. [프로젝트] > [새 항목 추가]로 이동하여 새 코드 파일을 만들거나, [프로젝트] > [기존 항목 추가]로 이동하여 기존 코드 파일을 프로젝트에 추가합니다.
-//   6. 나중에 이 프로젝트를 다시 열려면 [파일] > [열기] > [프로젝트]로 이동하고 .sln 파일을 선택합니다.
+    char szPacket[1024];
+    memset(szPacket, 0x0, sizeof(szPacket));
+    memcpy(szPacket, &sData, sizeof(sData));
+
+    *((serverData*)szPacket) = sData;
+}
+
+int main()
+{
+    std::cout << "Hello World!\n";
+
+    ServerTest();
+    //ByteArrayToStructure();
+    
+    return 0;
+}
