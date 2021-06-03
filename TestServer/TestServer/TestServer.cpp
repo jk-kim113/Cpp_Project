@@ -14,12 +14,9 @@ using namespace std;
 
 #define PORT        4578
 #define PACKET_SIZE 1032
-#define CLIENT_COUNT 4
 
-SOCKET skt, client_sock;
+SOCKET skt;
 bool _isSendTest = false;
-
-SOCKET clientSocket[CLIENT_COUNT];
 
 vector<SOCKET> _clientGroup;
 vector<thread*> _clientThread;
@@ -43,7 +40,7 @@ typedef struct Packet_Chat {
 
 queue<PacketInfo> _fromClientQueue;
 
-void proc_recvs()
+void proc_recvs(SOCKET clientSkt)
 {
     printf("Wait Client Data\n");
     char buffer[PACKET_SIZE] = { 0 };
@@ -51,24 +48,16 @@ void proc_recvs()
 
     while (true)
     {   
-        for (int n = 0; n < CLIENT_COUNT; n++)
+        int recvLen = recv(clientSkt, buffer, PACKET_SIZE, 0);
+        if (recvLen > 0)
         {
-            if (clientSocket[n] != NULL)
-            {
-                int recvLen = recv(clientSocket[n], buffer, PACKET_SIZE, 0);
-                if (recvLen > 0)
-                {
-                    PacketInfo packet;
-                    memcpy(&packet, &buffer, sizeof(buffer));
+            PacketInfo packet;
+            memcpy(&packet, &buffer, sizeof(buffer));
 
-                    _mtx.lock();
-                    _fromClientQueue.push(packet);
-                    printf("Push Data\n");
-                    _mtx.unlock();
-
-                    break;
-                }
-            }
+            _mtx.lock();
+            _fromClientQueue.push(packet);
+            printf("Push Data\n");
+            _mtx.unlock();
         }
 
         //recv(client_sock, buffer, PACKET_SIZE, 0);
@@ -108,6 +97,18 @@ void DoOrder()
             memcpy(&pChat, &packet._data, sizeof(packet._data));
 
             std::cout << "Packet Message : " << pChat._chat << "\n";
+
+            char szPacket[1032];
+            memset(szPacket, 0x0, sizeof(szPacket));
+            memcpy(szPacket, &packet, sizeof(packet));
+
+            *((PacketInfo*)szPacket) = packet;
+
+            vector<SOCKET>::iterator sitr;
+            for (sitr = _clientGroup.begin(); sitr != _clientGroup.end(); ++sitr)
+            {
+                send(*sitr, szPacket, 1032, 0);
+            }
         }
         _mtx.unlock();
     }
@@ -122,22 +123,12 @@ void AcceptClient()
             SOCKADDR_IN client = {};
             int iClntSize = sizeof(client);
             ZeroMemory(&client, iClntSize);
-            //client_sock = accept(skt, (SOCKADDR*)&client, &iClntSize);
+            
+            SOCKET clientSkt = accept(skt, (SOCKADDR*)&client, &iClntSize);
+            _clientGroup.push_back(clientSkt);
 
-            /*_clientSocketList.push_back(accept(skt, (SOCKADDR*)&client, &iClntSize));
-            printf("%d번째 클라이언트 접속\n", (int)_clientSocketList.size());*/
-
-            _clientGroup.push_back(accept(skt, (SOCKADDR*)&client, &iClntSize));
-
-            for (int n = 0; n < CLIENT_COUNT; n++)
-            {
-                if (clientSocket[n] == NULL)
-                {
-                    clientSocket[n] = accept(skt, (SOCKADDR*)&client, &iClntSize);
-                    printf("%d번째 클라이언트 접속\n", n + 1);
-                    break;
-                }
-            }
+            thread* clientThr = new thread(&proc_recvs, clientSkt);
+            _clientThread.push_back(clientThr);
         }
     }
 }
@@ -159,21 +150,36 @@ void ServerTest()
     thread acceptClient(AcceptClient);
 
     char buffer[PACKET_SIZE] = { 0 };
-    thread proc2(proc_recvs);
     thread doOrder(DoOrder);
 
     while (!WSAGetLastError())
     {
         cin >> buffer;
-        send(client_sock, buffer, strlen(buffer), 0);
+        //send(client_sock, buffer, strlen(buffer), 0);
     }
 
     printf("클라이언트 쪽에 보내는 부분에서 서버가 종료됩니다");
 
     acceptClient.join();
-    proc2.join();
     doOrder.join();
-    closesocket(client_sock);
+
+    _mtx.lock();
+    vector<SOCKET>::iterator sitr;
+    for (sitr = _clientGroup.begin(); sitr != _clientGroup.end(); ++sitr)
+        closesocket(*sitr);
+    _clientGroup.clear();
+    _mtx.unlock();
+
+    vector<thread*>::iterator itr;
+    for (itr = _clientThread.begin(); itr != _clientThread.end(); ++itr)
+    {
+        if ((*itr)->joinable())
+            (*itr)->join();
+
+        delete (*itr);
+    }
+    _clientThread.clear();
+
     closesocket(skt);
 
     WSACleanup();
