@@ -1,0 +1,4 @@
+﻿  CppDBTest.cpp
+D:\JK_Github\Cpp_Project\CppDBTest\CppDBTest\CppDBTest.cpp(19,10): warning C4101: 'str1' :참조되지 않은 지역 변수입니다.
+D:\JK_Github\Cpp_Project\CppDBTest\CppDBTest\CppDBTest.cpp(19,22): warning C4101: 'str2' :참조되지 않은 지역 변수입니다.
+  CppDBTest.vcxproj -> D:\JK_Github\Cpp_Project\CppDBTest\x64\Debug\CppDBTest.exe
