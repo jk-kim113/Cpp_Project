@@ -1,5 +1,6 @@
 ﻿  TestServer.cpp
-D:\JK_Github\Cpp_Project\TestServer\TestServer\TestServer.cpp(29,2): warning C4091: 'typedef ': 변수를 선언하지 않으면 'serverData' 왼쪽은 무시됩니다.
-D:\JK_Github\Cpp_Project\TestServer\TestServer\TestServer.cpp(35,2): warning C4091: 'typedef ': 변수를 선언하지 않으면 'PacketInfo' 왼쪽은 무시됩니다.
-D:\JK_Github\Cpp_Project\TestServer\TestServer\TestServer.cpp(39,2): warning C4091: 'typedef ': 변수를 선언하지 않으면 'Packet_Chat' 왼쪽은 무시됩니다.
+D:\JK_Github\Cpp_Project\TestServer\TestServer\TestServer.cpp(32,2): warning C4091: 'typedef ': 변수를 선언하지 않으면 'serverData' 왼쪽은 무시됩니다.
+D:\JK_Github\Cpp_Project\TestServer\TestServer\TestServer.cpp(38,2): warning C4091: 'typedef ': 변수를 선언하지 않으면 'PacketInfo' 왼쪽은 무시됩니다.
+D:\JK_Github\Cpp_Project\TestServer\TestServer\TestServer.cpp(42,2): warning C4091: 'typedef ': 변수를 선언하지 않으면 'Packet_Chat' 왼쪽은 무시됩니다.
+D:\JK_Github\Cpp_Project\TestServer\TestServer\TestServer.cpp(150,78): warning C4267: '=': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
   TestServer.vcxproj -> D:\JK_Github\Cpp_Project\TestServer\x64\Debug\TestServer.exe

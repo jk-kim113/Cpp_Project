@@ -7,6 +7,7 @@
 #include <queue>
 #include <mutex>
 #include <vector>
+#include <stdlib.h>
 
 #pragma comment(lib, "ws2_32")
 
@@ -22,6 +23,8 @@ vector<SOCKET> _clientGroup;
 vector<thread*> _clientThread;
 
 mutex _mtx;
+
+bool _isFileDownTest = false;
 
 typedef struct serverData {
     int _id;
@@ -129,6 +132,27 @@ void AcceptClient()
 
             thread* clientThr = new thread(&proc_recvs, clientSkt);
             _clientThread.push_back(clientThr);
+
+            if (!_isFileDownTest)
+            {
+                _isFileDownTest = true;
+                int sendBytes;
+                long file_size;
+                char buf[1024];
+                FILE* fp;
+                fp = fopen("D:\\TestPNG.png", "rb");
+                fseek(fp, 0, SEEK_END);
+                file_size = ftell(fp);
+                printf("File Size : %d", file_size);
+                fseek(fp, 0, SEEK_SET);
+                snprintf(buf, sizeof(buf), "%d", file_size);
+                send(clientSkt, buf, sizeof(buf), 0);
+                while ((sendBytes = fread(buf, sizeof(char), sizeof(buf), fp)) > 0)
+                {
+                    send(clientSkt, buf, sendBytes, 0);
+                }
+                fclose(fp);
+            }
         }
     }
 }
@@ -204,6 +228,6 @@ int main()
 
     ServerTest();
     //ByteArrayToStructure();
-    
+
     return 0;
 }
