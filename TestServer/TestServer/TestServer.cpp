@@ -107,11 +107,11 @@ void DoOrder()
 
             *((PacketInfo*)szPacket) = packet;
 
-            vector<SOCKET>::iterator sitr;
+            /*vector<SOCKET>::iterator sitr;
             for (sitr = _clientGroup.begin(); sitr != _clientGroup.end(); ++sitr)
             {
                 send(*sitr, szPacket, 1032, 0);
-            }
+            }*/
         }
         _mtx.unlock();
     }
@@ -140,7 +140,7 @@ void AcceptClient()
                 long file_size;
                 char buf[1024];
                 FILE* fp;
-                fp = fopen("D:\\TestPNG.png", "rb");
+                fp = fopen("D:\\1_triceratops", "rb");
                 fseek(fp, 0, SEEK_END);
                 file_size = ftell(fp);
                 printf("File Size : %d", file_size);
