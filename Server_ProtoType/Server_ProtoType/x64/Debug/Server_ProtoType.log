@@ -1,0 +1,3 @@
+﻿  MainServer.cpp
+D:\JK_Github\Cpp_Project\Server_ProtoType\Server_ProtoType\MainServer.cpp(25,2): warning C4091: 'typedef ': 변수를 선언하지 않으면 'PacketInfo' 왼쪽은 무시됩니다.
+  Server_ProtoType.vcxproj -> D:\JK_Github\Cpp_Project\Server_ProtoType\x64\Debug\Server_ProtoType.exe

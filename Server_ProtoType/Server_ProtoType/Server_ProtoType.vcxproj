@@ -139,7 +139,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="MainServer.cpp" />
     <ClCompile Include="Server_ProtoType.cpp" />
+    <ClCompile Include="SocketClass.cpp" />
+    <ClCompile Include="SocketManager.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MainServer.h" />
+    <ClInclude Include="SocketClass.h" />
+    <ClInclude Include="SocketManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
