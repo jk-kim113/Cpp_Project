@@ -42,8 +42,6 @@ void MainServer::CreateServer()
 
 	bind(_waitServer, (SOCKADDR*)&addr, sizeof(addr));
 
-    //thread* acceptClient = new thread(&AcceptClient, _waitServer);
-
 	thread acceptClient(&MainServer::AcceptClient, this);
 	thread doOrder(&MainServer::DoOrder, this);
 
@@ -102,7 +100,7 @@ void MainServer::DoOrder()
 	while (true)
 	{
 		_mtx.lock();
-		if (_fromClientQueue.empty())
+		if (!_fromClientQueue.empty())
 		{
 			PacketInfo packet = _fromClientQueue.front();
 			_fromClientQueue.pop();
