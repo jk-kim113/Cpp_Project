@@ -8,6 +8,7 @@
 #include <mutex>
 #include "SocketClass.h"
 #include "SocketManager.h"
+#include "PacketClass.h"
 
 #pragma comment(lib, "ws2_32")
 
@@ -17,6 +18,7 @@ using namespace std;
 
 mutex _mtx;
 SocketManager _socketMgr;
+map<int, vector<int>> _classGroup;
 
 typedef struct PacketInfo {
 	int _id;
@@ -24,7 +26,20 @@ typedef struct PacketInfo {
 	char _data[1024];
 };
 
-queue<PacketInfo> _fromClientQueue;
+typedef struct P_ClientInfo {
+	int _schoolID;
+	int _grade;
+	int _group;
+};
+
+typedef struct P_StudentInfo {
+	int _schoolID;
+	int _grade;
+	int _group;
+	int _number;
+};
+
+queue<PacketClass> _fromClientQueue;
 
 void MainServer::CreateServer()
 {
@@ -54,8 +69,6 @@ void MainServer::CreateServer()
 
 void MainServer::AcceptClient()
 {
-	std::cout << "Accept Client!\n";
-
 	while (true)
 	{
 		if (listen(_waitServer, SOMAXCONN) == 0)
@@ -67,8 +80,10 @@ void MainServer::AcceptClient()
 			SOCKET clientSkt = accept(_waitServer, (SOCKADDR*)&client, &clntSize);
 			thread* clientThr = new thread(&MainServer::ListenClient, this, clientSkt);
 
-			SocketClass* socketClass = new SocketClass(clientSkt, clientThr);
+			SocketClass* socketClass = new SocketClass(clientSkt, clientThr, _socketMgr._SocketCount());
 			_socketMgr.AddSocket(socketClass);
+
+			std::cout << "Accept Client!\n";
 		}
 	}
 }
@@ -88,8 +103,11 @@ void MainServer::ListenClient(SOCKET client)
 			PacketInfo packet;
 			memcpy(&packet, &buffer, sizeof(buffer));
 
+			PacketClass packetClass;
+			packetClass.AccessServer(packet._id, packet._data, packet._totalSize, 0);
+
 			_mtx.lock();
-			_fromClientQueue.push(packet);
+			_fromClientQueue.push(packetClass);
 			_mtx.unlock();
 		}
 	}
@@ -102,14 +120,79 @@ void MainServer::DoOrder()
 		_mtx.lock();
 		if (!_fromClientQueue.empty())
 		{
-			PacketInfo packet = _fromClientQueue.front();
+			PacketClass packet = _fromClientQueue.front();
 			_fromClientQueue.pop();
 
 			std::cout << "Do Order!\n";
 
-			switch (packet._id)
+			switch (packet._ProtocolID())
 			{
 			case 0:
+
+				std::cout << "관리자 클라이언트 정보 들어옴" << "\n";
+				P_ClientInfo pClientInfo;
+				memcpy(&pClientInfo, packet._Data(), packet._DataSize());
+
+				std::cout << "School Name : " << pClientInfo._schoolID << "\n";
+				std::cout << "Grade : " << pClientInfo._grade << "학년" << "\n";
+				std::cout << "Group : " << pClientInfo._group << "반" << "\n";
+				int key;
+				key = pClientInfo._schoolID + pClientInfo._grade + pClientInfo._group;
+				if (_classGroup.find(key) != _classGroup.end())
+				{
+					// exist
+					std::cout << "There is Group" << "\n";
+				}
+				else
+				{
+					// not exist
+					std::cout << "There is no Group" << "\n" << "Success to Create Group" << "\n";
+					vector<int> temp;
+					_classGroup[key] = temp;
+				}
+
+				break;
+
+			case 100:
+
+				std::cout << "학생 정보 들어옴" << "\n";
+				P_StudentInfo pStudentInfo;
+				memcpy(&pStudentInfo, packet._Data(),  packet._DataSize());
+
+				std::cout << "School Name : " << pStudentInfo._schoolID << "\n";
+				std::cout << "Grade : " << pStudentInfo._grade << "학년" << "\n";
+				std::cout << "Group : " << pStudentInfo._group << "반" << "\n";
+				std::cout << "Number : " << pStudentInfo._number << "번" << "\n";
+
+				int checkkey;
+				checkkey = pStudentInfo._schoolID + pStudentInfo._grade + pStudentInfo._group;
+				if (_classGroup.find(checkkey) != _classGroup.end())
+				{
+					// exist
+
+					vector<int>::iterator it;
+					it = std::find(_classGroup[checkkey].begin(), _classGroup[checkkey].end(), pStudentInfo._number);
+
+					if (it != _classGroup[checkkey].end())
+					{
+						std::cout << "Already Exist Same Student" << "\n";
+					}
+					else
+					{
+						_classGroup[checkkey].push_back(pStudentInfo._number);
+
+						std::cout << "Success to Join Student" << "\n";
+						std::cout << "현재 클래스의 학생 수 : " << _classGroup[checkkey].size() << "\n";
+
+						// 소켓 매니저에서 관리자 map<int, SocketClass> 학생 map<int, vector<SocketClass>> 따로 관리하는게 좋을듯
+					}
+				}
+				else
+				{
+					// not exist
+					std::cout << "Fail to Join Student" << "\n";
+				}
+
 				break;
 
 			default:

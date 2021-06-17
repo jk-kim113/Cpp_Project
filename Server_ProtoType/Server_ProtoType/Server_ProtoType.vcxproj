@@ -140,12 +140,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MainServer.cpp" />
+    <ClCompile Include="PacketClass.cpp" />
     <ClCompile Include="Server_ProtoType.cpp" />
     <ClCompile Include="SocketClass.cpp" />
     <ClCompile Include="SocketManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainServer.h" />
+    <ClInclude Include="PacketClass.h" />
     <ClInclude Include="SocketClass.h" />
     <ClInclude Include="SocketManager.h" />
   </ItemGroup>
