@@ -6,7 +6,7 @@
 #include <string>
 #include <queue>
 #include <mutex>
-#include "SocketClass.h"
+
 #include "SocketManager.h"
 #include "PacketClass.h"
 
@@ -78,9 +78,11 @@ void MainServer::AcceptClient()
 			ZeroMemory(&client, clntSize);
 
 			SOCKET clientSkt = accept(_waitServer, (SOCKADDR*)&client, &clntSize);
-			thread* clientThr = new thread(&MainServer::ListenClient, this, clientSkt);
 
-			SocketClass* socketClass = new SocketClass(clientSkt, clientThr, _socketMgr._SocketCount());
+			SocketClass* socketClass = new SocketClass(clientSkt, _socketMgr._SocketCount());
+			thread* clientThr = new thread(&MainServer::ListenClient, this, socketClass);
+			socketClass->ExecuteThread(clientThr);
+
 			_socketMgr.AddSocket(socketClass);
 
 			std::cout << "Accept Client!\n";
@@ -88,7 +90,7 @@ void MainServer::AcceptClient()
 	}
 }
 
-void MainServer::ListenClient(SOCKET client)
+void MainServer::ListenClient(SocketClass* socketClass)
 {
 	std::cout << "Listen Client!\n";
 
@@ -97,7 +99,7 @@ void MainServer::ListenClient(SOCKET client)
 
 	while (true)
 	{
-		int recvLen = recv(client, buffer, PACKET_SIZE, 0);
+		int recvLen = recv(socketClass->_MySocket(), buffer, PACKET_SIZE, 0);
 		if (recvLen > 0)
 		{
 			PacketInfo packet;
@@ -138,18 +140,21 @@ void MainServer::DoOrder()
 				std::cout << "Group : " << pClientInfo._group << "반" << "\n";
 				int key;
 				key = pClientInfo._schoolID + pClientInfo._grade + pClientInfo._group;
-				if (_classGroup.find(key) != _classGroup.end())
-				{
-					// exist
-					std::cout << "There is Group" << "\n";
-				}
-				else
-				{
-					// not exist
-					std::cout << "There is no Group" << "\n" << "Success to Create Group" << "\n";
-					vector<int> temp;
-					_classGroup[key] = temp;
-				}
+
+				_socketMgr.AddManagerSocket(key, packet._CastIdentifier());
+
+				//if (_classGroup.find(key) != _classGroup.end())
+				//{
+				//	// exist
+				//	std::cout << "There is Group" << "\n";
+				//}
+				//else
+				//{
+				//	// not exist
+				//	std::cout << "There is no Group" << "\n" << "Success to Create Group" << "\n";
+				//	vector<int> temp;
+				//	_classGroup[key] = temp;
+				//}
 
 				break;
 
@@ -185,6 +190,7 @@ void MainServer::DoOrder()
 						std::cout << "현재 클래스의 학생 수 : " << _classGroup[checkkey].size() << "\n";
 
 						// 소켓 매니저에서 관리자 map<int, SocketClass> 학생 map<int, vector<SocketClass>> 따로 관리하는게 좋을듯
+
 					}
 				}
 				else

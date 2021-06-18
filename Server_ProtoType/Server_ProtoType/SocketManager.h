@@ -9,7 +9,7 @@ class SocketManager
 private:
 	map<string, vector<SocketClass*>> _classGroup;
 	vector<SocketClass*> _socketGroup;
-	map<int, SocketClass> _managerGroup;
+	map<int, SocketClass*> _managerGroup;
 	map<int, vector<SocketClass>> _studentGroup;
 
 public:
@@ -20,4 +20,7 @@ public:
 	int _SocketCount() {
 		return _socketGroup.size();
 	}
+
+	void AddManagerSocket(int classID, int castIdentifier);
+	void AddStudentSocket(int classID, int castIdentifier);
 };

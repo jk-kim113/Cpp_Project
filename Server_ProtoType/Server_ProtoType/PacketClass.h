@@ -23,6 +23,10 @@ public:
 		return _protocolID;
 	}
 
+	int _CastIdentifier() {
+		return _castIdentifier;
+	}
+
 	char* _Data() {
 		return _data;
 	}

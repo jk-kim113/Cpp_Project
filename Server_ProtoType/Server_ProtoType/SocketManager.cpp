@@ -18,3 +18,36 @@ void SocketManager::SendToGroup(string classInfo)
 		//send(it, )
 	}
 }
+
+void SocketManager::AddManagerSocket(int classID, int castIdentifier)
+{
+	for (int n = 0; n < _socketGroup.size(); n++)
+	{
+		if (_socketGroup[n]->_UUID() == 0) // 소켓 인덱스랑 비교
+		{
+			// 여기서 소켓을 매니저 벡터에 추가
+			// 동시에 학생 그룹 초기화
+
+			if (_managerGroup.find(classID) != _managerGroup.end())
+			{
+				// exist
+				std::cout << "There is Group" << "\n";
+			}
+			else
+			{
+				// not exist
+				std::cout << "There is no Group" << "\n" << "Success to Create Group" << "\n";
+			}
+
+			break;
+		}
+	}
+}
+
+void SocketManager::AddStudentSocket(int classID, int castIdentifier)
+{
+	for (int n = 0; n < _studentGroup.size(); n++)
+	{
+		
+	}
+}

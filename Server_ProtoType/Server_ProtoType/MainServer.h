@@ -1,5 +1,6 @@
 #pragma once
 #include <WinSock2.h>
+#include "SocketClass.h"
 
 class MainServer
 {
@@ -9,7 +10,7 @@ private:
 
 	void CreateServer();
 	void AcceptClient();
-	void ListenClient(SOCKET client);
+	void ListenClient(SocketClass* socketClass);
 	void DoOrder();
 
 public:

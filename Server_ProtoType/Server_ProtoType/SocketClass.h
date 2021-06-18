@@ -13,11 +13,21 @@ private:
 	int _myIndex;
 
 public:
-	SocketClass(SOCKET socket, thread* thread, int myIndex)
+	SocketClass(SOCKET socket, int myindex)
 	{
 		_mySocket = socket;
-		_myThread = thread;
+		_myThread = nullptr;
 		_uniqueIndex = 0;
-		_myIndex = myIndex;
+		_myIndex = myindex;
+	}
+
+	void ExecuteThread(thread* myThread);
+
+	SOCKET _MySocket() {
+		return _mySocket;
+	}
+
+	int _UUID() {
+		return _uniqueIndex;
 	}
 };
