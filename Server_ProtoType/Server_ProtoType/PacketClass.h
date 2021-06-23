@@ -1,4 +1,6 @@
 #pragma once
+#include <iostream>
+#include "MainServer.h"
 
 class PacketClass
 {
@@ -8,6 +10,7 @@ private:
 	int _uniqueUserIndex;	// À¯ÀúÀÇ UUID
 	int _dataSize;
 	char* _data;
+	char _dataPacket[1024];
 
 public:
 	PacketClass()
@@ -37,5 +40,7 @@ public:
 
 	void AccessServer(int protocolID, char* data, int dataSize, int castIdentifier);
 	void EnrollUUID(int protocolID, char* data, int dataSize, int castIdentifier, int uuid);
+
+	void CreatePacket(int toClientID, struct MainServer::P_StudentUUID p, int castIdentifier);
 };
 

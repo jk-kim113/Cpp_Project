@@ -9,6 +9,7 @@
 
 #include "SocketManager.h"
 #include "PacketClass.h"
+#include "MainDB.h"
 
 #pragma comment(lib, "ws2_32")
 
@@ -19,27 +20,10 @@ using namespace std;
 mutex _mtx;
 SocketManager _socketMgr;
 map<int, vector<int>> _classGroup;
-
-typedef struct PacketInfo {
-	int _id;
-	int _totalSize;
-	char _data[1024];
-};
-
-typedef struct P_ClientInfo {
-	int _schoolID;
-	int _grade;
-	int _group;
-};
-
-typedef struct P_StudentInfo {
-	int _schoolID;
-	int _grade;
-	int _group;
-	int _number;
-};
+MainDB _mainDB;
 
 queue<PacketClass> _fromClientQueue;
+queue<PacketClass> _toClientQueue;
 
 void MainServer::CreateServer()
 {
@@ -59,6 +43,9 @@ void MainServer::CreateServer()
 
 	thread acceptClient(&MainServer::AcceptClient, this);
 	thread doOrder(&MainServer::DoOrder, this);
+	thread sendClient(&MainServer::SendClient, this);
+
+	_mainDB.InitDB();
 
 	char buffer[PACKET_SIZE] = { 0 };
 	while (!WSAGetLastError())
@@ -169,41 +156,78 @@ void MainServer::DoOrder()
 				std::cout << "Group : " << pStudentInfo._group << "반" << "\n";
 				std::cout << "Number : " << pStudentInfo._number << "번" << "\n";
 
-				int checkkey;
-				checkkey = pStudentInfo._schoolID + pStudentInfo._grade + pStudentInfo._group;
-				if (_classGroup.find(checkkey) != _classGroup.end())
+				// DB에 등록 하고 UUID를 보내줘야함
+				if (_mainDB.EnrollStudentInfo(pStudentInfo._schoolID, pStudentInfo._grade, pStudentInfo._group, pStudentInfo._number) == 0)
 				{
-					// exist
+					//등록 완료
+					int myUUID = 0;
+					myUUID = _mainDB.SearchUUID(pStudentInfo._schoolID, pStudentInfo._grade, pStudentInfo._group, pStudentInfo._number);
 
-					vector<int>::iterator it;
-					it = std::find(_classGroup[checkkey].begin(), _classGroup[checkkey].end(), pStudentInfo._number);
+					std::cout << "찾아온 UUID : " << myUUID << "\n";
 
-					if (it != _classGroup[checkkey].end())
+					if (myUUID > 0)
 					{
-						std::cout << "Already Exist Same Student" << "\n";
-					}
-					else
-					{
-						_classGroup[checkkey].push_back(pStudentInfo._number);
+						// UUID 가져오기 성공
+						std::cout << "This Student's UUID : " << myUUID << "\n";
 
-						std::cout << "Success to Join Student" << "\n";
-						std::cout << "현재 클래스의 학생 수 : " << _classGroup[checkkey].size() << "\n";
+						P_StudentUUID pStudentUUID;
+						pStudentUUID._UUID = myUUID;
 
-						// 소켓 매니저에서 관리자 map<int, SocketClass> 학생 map<int, vector<SocketClass>> 따로 관리하는게 좋을듯
-
+						_socketMgr.SendStudentUUID(0, pStudentUUID, packet._CastIdentifier());
 					}
 				}
-				else
-				{
-					// not exist
-					std::cout << "Fail to Join Student" << "\n";
-				}
+
+				//int checkkey;
+				//checkkey = pStudentInfo._schoolID + pStudentInfo._grade + pStudentInfo._group;
+				//if (_classGroup.find(checkkey) != _classGroup.end())
+				//{
+				//	// exist
+
+				//	vector<int>::iterator it;
+				//	it = std::find(_classGroup[checkkey].begin(), _classGroup[checkkey].end(), pStudentInfo._number);
+
+				//	if (it != _classGroup[checkkey].end())
+				//	{
+				//		std::cout << "Already Exist Same Student" << "\n";
+				//	}
+				//	else
+				//	{
+				//		_classGroup[checkkey].push_back(pStudentInfo._number);
+
+				//		std::cout << "Success to Join Student" << "\n";
+				//		std::cout << "현재 클래스의 학생 수 : " << _classGroup[checkkey].size() << "\n";
+
+				//		// 소켓 매니저에서 관리자 map<int, SocketClass> 학생 map<int, vector<SocketClass>> 따로 관리하는게 좋을듯
+
+				//	}
+				//}
+				//else
+				//{
+				//	// not exist
+				//	std::cout << "Fail to Join Student" << "\n";
+				//}
 
 				break;
 
 			default:
 				break;
 			}
+		}
+		_mtx.unlock();
+	}
+}
+
+void MainServer::SendClient()
+{
+	while (true)
+	{
+		_mtx.lock();
+		if (!_fromClientQueue.empty())
+		{
+			PacketClass packet = _toClientQueue.front();
+			_toClientQueue.pop();
+
+
 		}
 		_mtx.unlock();
 	}

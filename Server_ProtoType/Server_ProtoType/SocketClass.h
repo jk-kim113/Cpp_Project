@@ -30,4 +30,8 @@ public:
 	int _UUID() {
 		return _uniqueIndex;
 	}
+
+	int _MyIndex() {
+		return _myIndex;
+	}
 };

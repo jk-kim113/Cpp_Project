@@ -51,3 +51,23 @@ void SocketManager::AddStudentSocket(int classID, int castIdentifier)
 		
 	}
 }
+
+PacketClass SocketManager::SendStudentUUID(int toClientID, struct MainServer::P_StudentUUID p, int castIdentifier)
+{
+	PacketClass packet;
+	packet.CreatePacket(toClientID, p, castIdentifier);
+
+	return packet;
+}
+
+void SocketManager::Send(char* data, int size, int castID)
+{
+	for (int n = 0; n < _socketGroup.size(); n++)
+	{
+		if (_socketGroup[n]->_MyIndex() == castID)
+		{
+			send(_socketGroup[n]->_MySocket(), data, 1032, 0);
+			return;
+		}
+	}
+}
