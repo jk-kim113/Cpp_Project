@@ -1,6 +1,6 @@
 #include "MainServer.h"
 #include <iostream>
-#include <WinSock2.h>
+
 #include <thread>
 #include <stdlib.h>
 #include <string>
@@ -23,7 +23,8 @@ map<int, vector<int>> _classGroup;
 MainDB _mainDB;
 
 queue<PacketClass> _fromClientQueue;
-queue<PacketClass> _toClientQueue;
+
+int _clientCnt = 1;
 
 void MainServer::CreateServer()
 {
@@ -43,7 +44,6 @@ void MainServer::CreateServer()
 
 	thread acceptClient(&MainServer::AcceptClient, this);
 	thread doOrder(&MainServer::DoOrder, this);
-	thread sendClient(&MainServer::SendClient, this);
 
 	_mainDB.InitDB();
 
@@ -66,7 +66,8 @@ void MainServer::AcceptClient()
 
 			SOCKET clientSkt = accept(_waitServer, (SOCKADDR*)&client, &clntSize);
 
-			SocketClass* socketClass = new SocketClass(clientSkt, _socketMgr._SocketCount());
+			SocketClass* socketClass = new SocketClass(clientSkt, _clientCnt);
+			_clientCnt++;
 			thread* clientThr = new thread(&MainServer::ListenClient, this, socketClass);
 			socketClass->ExecuteThread(clientThr);
 
@@ -93,7 +94,9 @@ void MainServer::ListenClient(SocketClass* socketClass)
 			memcpy(&packet, &buffer, sizeof(buffer));
 
 			PacketClass packetClass;
-			packetClass.AccessServer(packet._id, packet._data, packet._totalSize, 0);
+			packetClass.AccessServer(packet._id, packet._data, packet._totalSize, socketClass->_MyIndex());
+
+			std::cout << "소켓 인덱스 중간 점검 : " << socketClass->_MyIndex() << "\n";
 
 			_mtx.lock();
 			_fromClientQueue.push(packetClass);
@@ -173,7 +176,19 @@ void MainServer::DoOrder()
 						P_StudentUUID pStudentUUID;
 						pStudentUUID._UUID = myUUID;
 
+						PacketInfo temp;
+						temp._id = 0;
+
+						memset(temp._data, 0x0, sizeof(pStudentUUID));
+						memcpy(temp._data, &pStudentUUID, sizeof(pStudentUUID));
+
+						*((MainServer::P_StudentUUID*)temp._data) = pStudentUUID;
+
+						temp._totalSize = sizeof(temp._data);
+
 						_socketMgr.SendStudentUUID(0, pStudentUUID, packet._CastIdentifier());
+
+						std::cout << "소켓 인덱스 중간 점검2 : " << packet._CastIdentifier() << "\n";
 					}
 				}
 
@@ -212,22 +227,6 @@ void MainServer::DoOrder()
 			default:
 				break;
 			}
-		}
-		_mtx.unlock();
-	}
-}
-
-void MainServer::SendClient()
-{
-	while (true)
-	{
-		_mtx.lock();
-		if (!_fromClientQueue.empty())
-		{
-			PacketClass packet = _toClientQueue.front();
-			_toClientQueue.pop();
-
-
 		}
 		_mtx.unlock();
 	}

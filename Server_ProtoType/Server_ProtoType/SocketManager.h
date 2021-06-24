@@ -26,7 +26,6 @@ public:
 	void AddManagerSocket(int classID, int castIdentifier);
 	void AddStudentSocket(int classID, int castIdentifier);
 	
-	PacketClass SendStudentUUID(int toClientID, struct MainServer::P_StudentUUID p, int castIdentifier);
-	void Send(char* data, int size, int castID);
+	void SendStudentUUID(int toClientID, struct MainServer::P_StudentUUID p, int castIdentifier);
 
 };

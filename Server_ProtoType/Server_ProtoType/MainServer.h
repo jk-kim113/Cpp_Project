@@ -12,7 +12,6 @@ private:
 	void AcceptClient();
 	void ListenClient(SocketClass* socketClass);
 	void DoOrder();
-	void SendClient();
 
 public:
 	MainServer()

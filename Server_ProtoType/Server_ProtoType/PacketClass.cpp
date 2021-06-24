@@ -18,6 +18,8 @@ void PacketClass::EnrollUUID(int protocolID, char* data, int dataSize, int castI
 
 void PacketClass::CreatePacket(int toClientID, struct MainServer::P_StudentUUID p, int castIdentifier)
 {
+	_castIdentifier = castIdentifier;
+
 	MainServer::PacketInfo packet;
 	packet._id = toClientID;
 
